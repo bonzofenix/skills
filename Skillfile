@@ -1,0 +1,32 @@
+# Skillfile: the Claude Code skills and plugins in use, like a Brewfile.
+# Apply with `skills-bundle install` (bonzofenix/workstation); see what's
+# missing with `skills-bundle check`. Private additions live in a separate
+# Skillfile.local that is never published.
+
+# --- Plugin marketplaces
+marketplace "anthropics/claude-plugins-official"
+marketplace "anthropics/skills"
+marketplace "JuliusBrussee/caveman"
+marketplace "forrestchang/andrej-karpathy-skills"
+marketplace "kepano/obsidian-skills"
+marketplace "affaan-m/everything-claude-code"
+
+# --- Plugins (name@marketplace)
+plugin "andrej-karpathy-skills@karpathy-skills"
+plugin "atlassian@claude-plugins-official"
+plugin "caveman@caveman"
+plugin "code-simplifier@claude-plugins-official"
+plugin "frontend-design@claude-plugins-official"
+plugin "gopls-lsp@claude-plugins-official"
+plugin "obsidian@obsidian-skills"
+plugin "pr-review-toolkit@claude-plugins-official"
+plugin "ralph-loop@claude-plugins-official"
+plugin "skill-creator@claude-plugins-official"
+plugin "swift-lsp@claude-plugins-official"
+
+# --- Own skills: every folder under skills/ in this repo, linked un-namespaced
+collection "bonzofenix/skills", dir: "$SKILLS_DIR", path: "skills"
+
+# --- Third-party skills, pinned to a commit
+# Trying out; its validation steps assume openclaw's own scripts.
+skill "test-audit", from: "openclaw/openclaw", ref: "80930af448ebabc84174146b56bc106d37fab3b4", path: ".agents/skills/test-audit"

@@ -29,5 +29,10 @@ git clone https://github.com/bonzofenix/skills ~/workspace/skills
 for d in ~/workspace/skills/skills/*/; do ln -sfn "$d" ~/.claude/skills/"$(basename "$d")"; done
 ```
 
-[`bonzofenix/workstation`](https://github.com/bonzofenix/workstation)'s
-`make configurations` does the symlinking for you.
+## Skillfile
+
+[`Skillfile`](Skillfile) lists every skill and plugin in use, Brewfile-style:
+marketplaces, plugins, this repo's skills, and pinned third-party skills.
+`skills-bundle install` from
+[`bonzofenix/workstation`](https://github.com/bonzofenix/workstation) applies
+it (`check` shows drift, `dump` prints what's installed).
