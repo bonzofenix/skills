@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "bonzofenix-skills",
+  "description": "General-purpose Claude Code skills",
+  "owner": {
+    "name": "bonzofenix"
+  },
+  "plugins": [
+    {
+      "name": "skills",
+      "description": "General-purpose Claude Code skills: CI analysis, PR descriptions and review comments, ship-it pipeline, SonarCloud issues, screenshots, background sessions, WhatsApp export to SQLite",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
