@@ -1,7 +1,7 @@
 {
   "name": "skills",
   "description": "General-purpose Claude Code skills: CI analysis, PR descriptions and review comments, ship-it pipeline, SonarCloud issues, screenshots, background sessions, WhatsApp export to SQLite",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "bonzofenix"
   },
