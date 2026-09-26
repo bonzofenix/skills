@@ -34,7 +34,8 @@ full each time. Pick a working dir outside the export, e.g. `~/wa/<chat-name>/`,
 1. **Ingest** the export (a `.zip`, an unzipped folder, or just the chat `.txt` of a "without
    media" export). Given a `.txt`, only files beside it named the way WhatsApp names media are
    linked, so chat text can't reference unrelated files in that folder; ingest prints a note for
-   referenced files it skipped for that reason (ingesting the folder links them):
+   referenced files it skipped for that reason; to link those, put the log and the files in a folder of
+   their own and ingest that folder):
    ```bash
    python3 ~/.claude/skills/whatsapp-to-db/scripts/wa2db.py ingest "<export>" --db <dir>/chat.sqlite
    ```
@@ -45,7 +46,8 @@ full each time. Pick a working dir outside the export, e.g. `~/wa/<chat-name>/`,
        extraction is removed again.
      - A folder is used in place, and the DB stores absolute paths into it, so the folder must
        stay put. If it moves, `transcribe`/`ocr` stop and say so; re-ingest from the new location.
-     - Symlinks in a folder are ignored: they could point anywhere on this machine.
+     - Symlinks are ignored (they could point anywhere on this machine), and ingest says which
+       referenced files that affected. Replace them with the real files (`cp -RL`) to use them.
    - **Choosing the chat log.** It is found by content. A chat export forwarded inside the chat is
      recognised as an attachment and skipped. If the script still can't choose, it lists the
      candidates; re-run with `--chat <name as listed>` (looked up inside the export first).
@@ -65,7 +67,8 @@ full each time. Pick a working dir outside the export, e.g. `~/wa/<chat-name>/`,
        phone's region changed) counts as a loss: both readings are compared;
      - transcripts, translations or OCR from the current DB wouldn't carry over, e.g. re-ingesting
        an export without media, where voice notes appear as "audio omitted";
-     - the current DB can't be read or compared (corrupt, or built by another tool).
+     - the current DB can't be read or compared (corrupt, built by another tool, or half or more of
+       its timestamps aren't valid dates; a few invalid ones are just noted).
 
      Tell the user the whole message. Re-run with `--allow-drop` only if they agree to all of it;
      what's dropped then survives only in the `.bak`.
@@ -161,7 +164,7 @@ full each time. Pick a working dir outside the export, e.g. `~/wa/<chat-name>/`,
      real safety check: tesseract reads unrecognised input as a list of image paths and OCRs
      *those* files, so a crafted "photo" could otherwise pull text out of images elsewhere on
      this machine. Rejections don't count toward the ten-in-a-row stop, and retrying won't
-     change them. If *every* image is rejected (at least ten) the run says it looks systemic (placeholders
+     change them. If many are rejected (at least ten, and half or more) the run says it looks systemic (placeholders
      instead of media, or a broken transfer): check a few of the files.
    - `ocr_text` values:
      - `''`: checked, and less than `--min-chars` (12) of text found. Most photos have none.

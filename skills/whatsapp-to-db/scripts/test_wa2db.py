@@ -991,7 +991,8 @@ class TestRoundFive:
         con.execute("insert into messages(ts, date, sender, kind, text) values('2025-13-04T10:00:00', '2025-13-04', 'Ana', 'text', 'x')")
         con.commit()
         con.close()
-        assert cli("ingest", export, "--db", db).returncode == 0
+        r = cli("ingest", export, "--db", db)
+        assert r.returncode == 0 and "1 of the current DB's timestamps aren't valid dates" in r.stdout
 
     def test_bare_txt_reports_unlinked_files_beside_it(self, tmp_path):
         folder = tmp_path / "Downloads"
@@ -1021,6 +1022,8 @@ class TestRoundFive:
         db = tmp_path / "out" / "chat.sqlite"
         assert cli("ingest", export, "--db", db).returncode == 0
         assert rows(db, "select path from media where file = ?", IOS_FILES[2]) == [(None,)]
+        out = cli("ingest", export, "--db", db).stdout
+        assert "1 referenced files are symlinks" in out and "absent from the export" not in out
 
     @pytest.mark.skipif(not shutil.which("tesseract"), reason="tesseract not installed")
     def test_rejections_share_one_error_and_all_rejected_looks_systemic(self, tmp_path):
@@ -1061,3 +1064,54 @@ class TestRoundFive:
             fh.flush()
             out = cli("status", "--db", db).stdout
         assert "superseded extractions" in out and "export-20200101-000000" in out
+
+
+
+class TestRoundSix:
+    """Regressions from the pre-PR review in bonzofenix/skills."""
+
+    def test_unparseable_stored_timestamps_block_replacement(self, tmp_path):
+        export, db, _ = ingested(tmp_path)
+        con = sqlite3.connect(db)
+        con.execute("update messages set ts = strftime('%d/%m/%Y %H:%M:%S', ts)")
+        con.commit()
+        con.close()
+        capped = make_export(tmp_path / "capped", IOS_CHAT[:2])
+        r = cli("ingest", capped / "_chat.txt", "--db", db)
+        assert r.returncode != 0 and "can't be ruled out" in r.stderr
+
+    def test_repeated_file_names_are_warned_about(self, tmp_path):
+        export = make_export(tmp_path / "export", IOS_CHAT, IOS_FILES)
+        (export / "other").mkdir()
+        (export / "other" / IOS_FILES[0]).write_bytes(b"x")
+        r = cli("ingest", export, "--db", tmp_path / "chat.sqlite")
+        assert r.returncode == 0 and "1 file names appear more than once" in r.stdout
+
+    def test_paths_in_chat_text_are_not_reported_as_beside_the_log(self, tmp_path):
+        folder = tmp_path / "Downloads"
+        make_export(folder, IOS_CHAT[:2] + ["[21/04/2025, 11:45:00] Eve: <attached: ../outside.png>"])
+        png(tmp_path / "outside.png")
+        r = cli("ingest", folder / "_chat.txt", "--db", tmp_path / "out" / "chat.sqlite")
+        assert r.returncode == 0 and "beside the chat log" not in r.stdout
+
+    def test_translation_done_and_failed_dont_overlap(self, tmp_path):
+        _, db, _ = ingested(tmp_path)
+        con = sqlite3.connect(db)
+        con.execute("update audios set translation = '', translation_error = 'RuntimeError: x' where id = 1")
+        con.execute("update audios set translation = 'hello' where id = 2")
+        con.commit()
+        con.close()
+        assert "translations: done 1, pending 0, failed 1" in cli("status", "--db", db).stdout
+
+    @pytest.mark.skipif(not shutil.which("tesseract"), reason="tesseract not installed")
+    def test_mostly_rejected_files_look_systemic(self, tmp_path):
+        names = [f"{i:08d}-PHOTO.png" for i in range(14)]
+        lines = [f"[21/04/2025, 11:{i:02d}:00] Ana: <attached: {n}>" for i, n in enumerate(names)]
+        _, db, _ = ingested(tmp_path, lines, names)
+        for i, n in enumerate(names):
+            if i < 12:
+                (tmp_path / "export" / n).write_bytes(b"")
+            else:
+                png(tmp_path / "export" / n)
+        r = cli("ocr", "--db", db)
+        assert "12 of 14 files were rejected, which looks systemic" in r.stdout

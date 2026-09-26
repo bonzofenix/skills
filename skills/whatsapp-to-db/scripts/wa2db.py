@@ -163,22 +163,30 @@ def running(db):
 
 # ---------- finding and parsing the export ----------
 
-def walk_export(export_dir):
-    """(name, path) for every regular file in the export, skipping symlinks (they could point
-    anywhere on this machine) and the AppleDouble junk (__MACOSX/, ._*) that re-zipping in Finder
-    adds."""
+def walk_export(export_dir, symlinks=None):
+    """(name, path) for every regular file in the export, skipping the AppleDouble junk
+    (__MACOSX/, ._*) that re-zipping in Finder adds, and symlinks (they could point anywhere on
+    this machine); skipped symlink names are appended to `symlinks` if given, to be reported."""
     for root, dirs, files in os.walk(export_dir):
         dirs[:] = [d for d in dirs if d != "__MACOSX"]
         for f in files:
             p = os.path.join(root, f)
-            if not f.startswith("._") and not os.path.islink(p):
-                yield f, p
+            if f.startswith("._"):
+                continue
+            if os.path.islink(p):
+                if symlinks is not None:
+                    symlinks.append(f)
+                continue
+            yield f, p
 
 
-def export_files(export_dir):
-    """{name: path} for the export's files; the first path wins if a name repeats."""
+def export_files(export_dir, symlinks=None, repeats=None):
+    """{name: path} for the export's files. Attachments are matched by name, so if a name repeats
+    the first path wins, and the name is appended to `repeats` if given."""
     files = {}
-    for f, p in walk_export(export_dir):
+    for f, p in walk_export(export_dir, symlinks):
+        if f in files and repeats is not None:
+            repeats.append(f)
         files.setdefault(f, p)
     return files
 
@@ -226,7 +234,8 @@ def find_chat_txt(export_dir):
     A chat export forwarded inside this chat is another such .txt; it's an attachment of the real
     log, so it is referenced by name from it."""
     root = os.path.realpath(export_dir)
-    cands = [p for f, p in walk_export(export_dir) if f.lower().endswith(".txt") and looks_like_chat(p)]
+    links = []
+    cands = [p for f, p in walk_export(export_dir, links) if f.lower().endswith(".txt") and looks_like_chat(p)]
     exact = [p for p in cands if os.path.basename(p) == "_chat.txt" and os.path.dirname(os.path.realpath(p)) == root]
     if len(exact) == 1:
         return exact[0]
@@ -237,8 +246,11 @@ def find_chat_txt(export_dir):
         cands = [p for p in cands if p not in attached] or cands
     if len(cands) != 1:
         names = [os.path.relpath(p, export_dir) for p in cands]
+        txt_links = [f for f in links if f.lower().endswith(".txt")]
         die(f"expected one WhatsApp chat log (.txt) in {export_dir}, found: {names or 'none'}. "
-            "Pass one of these names with --chat.")
+            + ("Pass one of these names with --chat." if names else "")
+            + (f" {len(txt_links)} .txt symlinks were skipped (e.g. {txt_links[0]}); replace them with the "
+               "real files (cp -RL or rsync -L)." if txt_links else ""))
     return cands[0]
 
 
@@ -414,16 +426,26 @@ def swap_day_month(ts):
 
 
 def dropped_messages(db, records, prev_order, new_order):
-    """Describe messages in the current DB that this export lacks, or return None. Messages are
+    """Problems (a list) about messages in the current DB that this export lacks. Messages are
     matched by timestamp, so a contact renamed on the phone doesn't count. If the day/month order
     differs from the current DB's, that is either a correction (the DB misread the same text) or
     a real change of format between exports (e.g. the phone's region changed); both readings are
-    tried and the better match wins."""
+    tried and the better match wins. Stored timestamps that aren't valid dates (another tool's
+    format, or an older version's impossible dates) can't be compared: a few are noted; if half
+    or more are, dropped messages can't be ruled out."""
     con = connect_ro(db)
     try:
-        stamps = [ts for ts, in con.execute("select ts from messages") if valid_ts(ts)]
+        stored = [ts for ts, in con.execute("select ts from messages")]
     finally:
         con.close()
+    bad = [ts for ts in stored if not valid_ts(ts)]
+    if bad and len(bad) * 2 >= len(stored):
+        return [f"{len(bad)} of its {len(stored)} timestamps aren't valid dates (e.g. {bad[0]!r}), so dropped "
+                "messages can't be ruled out"]
+    if bad:
+        log(f"note: {len(bad)} of the current DB's timestamps aren't valid dates (e.g. {bad[0]!r}) and weren't "
+            "compared with this export")
+    stamps = [ts for ts in stored if valid_ts(ts)]
     new = Counter(f"{d}T{t}" for d, t, _, _ in records)
     missing = Counter(stamps) - new
     if prev_order and prev_order != new_order:
@@ -436,11 +458,11 @@ def dropped_messages(db, records, prev_order, new_order):
                 log(f"note: reading dates as {new_order}; the current DB read the same text as {prev_order}, "
                     "so its dates are corrected")
     if not missing:
-        return None
+        return []
     stamps = sorted(missing)
-    return (f"{sum(missing.values())} of its messages aren't in this export ({stamps[0][:10]} -> {stamps[-1][:10]}; "
+    return [f"{sum(missing.values())} of its messages aren't in this export ({stamps[0][:10]} -> {stamps[-1][:10]}; "
             f"e.g. at {', '.join(stamps[:3])}): a shorter or capped export, a different chat, or timestamps "
-            "shifted by a phone timezone change?")
+            "shifted by a phone timezone change?"]
 
 
 def valid_ts(ts):
@@ -559,6 +581,7 @@ def cmd_ingest(a):
     else:
         export_dir, created = unpack(a.source, os.path.dirname(db))
     tmp = None
+    symlinks, repeated = [], []
     try:
         if a.chat:  # a name as listed inside the export first; a path of the user's otherwise
             inside = os.path.join(export_dir, a.chat)
@@ -574,16 +597,16 @@ def cmd_ingest(a):
         if txt_source:
             # Media may sit beside the log. Only files named the way WhatsApp names media count, so
             # chat text like "<attached: taxes.pdf>" can't pull in unrelated files from that folder.
+            symlinks = [f for f in os.listdir(export_dir)
+                        if WA_MEDIA_NAME.match(f) and os.path.islink(os.path.join(export_dir, f))]
             files = {f: os.path.join(export_dir, f) for f in os.listdir(export_dir)
                      if WA_MEDIA_NAME.match(f) and os.path.isfile(os.path.join(export_dir, f))
                      and not os.path.islink(os.path.join(export_dir, f))}
         else:
-            files = export_files(export_dir)
+            files = export_files(export_dir, symlinks, repeated)
         if had_db:
             try:
-                gone = dropped_messages(db, records, prev_order, diag["date_order"])
-                if gone:
-                    problems.append(gone)
+                problems.extend(dropped_messages(db, records, prev_order, diag["date_order"]))
             except sqlite3.Error as e:
                 problems.append(f"it can't be compared with this export ({e}), so dropped messages can't be ruled out")
         fd, tmp = tempfile.mkstemp(dir=os.path.dirname(db), prefix=os.path.basename(db) + ".", suffix=".partial")
@@ -635,13 +658,24 @@ def cmd_ingest(a):
             f"(e.g. {orphans[0]}). If that's most of them, the attachment markers weren't recognised.")
     con = connect(db)
     absent = [f for f, in con.execute("select file from media where path is null")]
-    beside = [f for f in absent if txt_source and os.path.isfile(os.path.join(export_dir, f))
-              and not os.path.islink(os.path.join(export_dir, f))]  # symlinks are skipped on purpose
+    linked_away = [f for f in absent if f in set(symlinks)]
+    here = set(os.listdir(export_dir)) if txt_source else set()
+    # Names come from chat text: only plain names actually listed beside the log count here.
+    beside = [f for f in absent if f in here and f == os.path.basename(f) and f not in linked_away
+              and not os.path.islink(os.path.join(export_dir, f))]
+    if linked_away:
+        log(f"note: {len(linked_away)} referenced files are symlinks, which are skipped because they could point "
+            f"anywhere (e.g. {linked_away[0]}). Replace them with the real files (cp -RL or rsync -L) and re-ingest.")
     if beside:
         log(f"note: {len(beside)} referenced files beside the chat log weren't linked because their names don't "
-            f"follow WhatsApp's media naming (e.g. {beside[0]}). To link them, ingest the export folder instead.")
-    if len(absent) > len(beside):
-        log(f"note: {len(absent) - len(beside)} attachments are referenced in the chat but absent from the export")
+            f"follow WhatsApp's media naming (e.g. {beside[0]}). To link them, put the chat log and those files "
+            "in a folder of their own and ingest that folder.")
+    if len(absent) > len(beside) + len(linked_away):
+        log(f"note: {len(absent) - len(beside) - len(linked_away)} attachments are referenced in the chat but "
+            "absent from the export")
+    if repeated:
+        log(f"warning: {len(set(repeated))} file names appear more than once in the export (e.g. {repeated[0]}); "
+            "attachments are matched by name, so only the first one found is used")
     status(con)
 
 
@@ -867,11 +901,12 @@ def finish(last_run, total, result):
     extra = [f"{n} {what}" for n, what in ((repeats, "had failed before"), (rejected, "rejected")) if n]
     summary = f"{total - failed} ok, {failed} failed" + (f" ({', '.join(extra)})" if extra else "")
     last_run(f"finished {stamp()}: {summary}")
-    if failed - repeats - rejected:
+    if rejected >= MAX_STREAK and rejected * 2 >= total - repeats:
+        advice = (f"; {rejected} of {total} files were rejected, which looks systemic (0-byte files from an "
+                  "interrupted transfer, or placeholders instead of media) rather than bad luck: check a few of "
+                  "them, and re-export if they're broken")
+    elif failed - repeats - rejected:
         advice = "; check the FAIL lines, then rerun with --retry-errors"
-    elif rejected >= MAX_STREAK and rejected == total:
-        advice = ("; every file was rejected, which looks systemic (placeholders instead of media, or a broken "
-                  "transfer?) rather than bad files: check a few of them")
     elif failed:
         advice = "; only known-bad or rejected files failed, and retrying won't change them: leave them"
     else:
@@ -1034,7 +1069,7 @@ def status(con):
         q("select count(*) from audios where error = 'not in export' and (transcript is null or transcript = '')")))
     if q("select count(*) from audios where translation is not null or translation_error is not null"):
         log("translations: done {}, pending {}, failed {}".format(
-            q("select count(*) from audios where translation is not null"),
+            q("select count(*) from audios where translation is not null and translation_error is null"),
             q(f"select count(*) {on_disk} and a.translation is null and a.translation_error is null"),
             q("select count(*) from audios where translation_error is not null")))
     img = "from messages m join media md on md.message_id = m.id where m.kind = 'image'"
