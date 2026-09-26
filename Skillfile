@@ -30,3 +30,60 @@ collection "bonzofenix/skills", dir: "$SKILLS_DIR", path: "skills"
 # --- Third-party skills, pinned to a commit
 # Trying out; its validation steps assume openclaw's own scripts.
 skill "test-audit", from: "openclaw/openclaw", ref: "80930af448ebabc84174146b56bc106d37fab3b4", path: ".agents/skills/test-audit"
+
+# Adopted 2026-09-26: these had been copied into ~/.claude/skills by hand.
+# Each pin is the upstream commit whose folder matched that local copy.
+# --- cloudflare/skills (Apache-2.0)
+skill "agents-sdk", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/agents-sdk"
+skill "cloudflare", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/cloudflare"
+skill "cloudflare-email-service", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/cloudflare-email-service"
+skill "cloudflare-one", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/cloudflare-one"
+skill "cloudflare-one-migrations", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/cloudflare-one-migrations"
+skill "durable-objects", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/durable-objects"
+skill "nextjs-on-cloudflare", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/nextjs-on-cloudflare"
+skill "sandbox-migrate-to-next", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/sandbox-migrate-to-next"
+skill "sandbox-next", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/sandbox-next"
+skill "sandbox-stable", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/sandbox-stable"
+skill "turnstile-spin", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/turnstile-spin"
+skill "web-perf", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/web-perf"
+skill "workers-best-practices", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/workers-best-practices"
+skill "wrangler", from: "cloudflare/skills", ref: "6dc7604903127485e7e4cb26314651ebd4a4df19", path: "skills/wrangler"
+
+# --- coreyhaines31/marketingskills (MIT). Pinned before upstream renamed its
+#     skills (ab-testing, cro, emails, ...); moving forward means renaming these.
+skill "ab-test-setup", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/ab-test-setup"
+skill "analytics-tracking", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/analytics-tracking"
+skill "competitor-alternatives", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/competitor-alternatives"
+skill "copy-editing", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/copy-editing"
+skill "copywriting", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/copywriting"
+skill "email-sequence", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/email-sequence"
+skill "form-cro", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/form-cro"
+skill "free-tool-strategy", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/free-tool-strategy"
+skill "launch-strategy", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/launch-strategy"
+skill "marketing-ideas", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/marketing-ideas"
+skill "marketing-psychology", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/marketing-psychology"
+skill "onboarding-cro", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/onboarding-cro"
+skill "page-cro", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/page-cro"
+skill "paid-ads", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/paid-ads"
+skill "paywall-upgrade-cro", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/paywall-upgrade-cro"
+skill "popup-cro", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/popup-cro"
+skill "pricing-strategy", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/pricing-strategy"
+skill "programmatic-seo", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/programmatic-seo"
+skill "referral-program", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/referral-program"
+skill "schema-markup", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/schema-markup"
+skill "seo-audit", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/seo-audit"
+skill "signup-flow-cro", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/signup-flow-cro"
+skill "social-content", from: "coreyhaines31/marketingskills", ref: "e63e4f7e4bd053bc1a03c168bae5717e15050bc6", path: "skills/social-content"
+
+# --- nextlevelbuilder/ui-ux-pro-max-skill (MIT). No single commit matches all
+#     seven, so each is pinned to the commit matching the copy in use.
+skill "banner-design", from: "nextlevelbuilder/ui-ux-pro-max-skill", ref: "d279284fb12d40f27e72393d51e0bbb785cf80a1", path: "cli/assets/skills/banner-design"
+skill "brand", from: "nextlevelbuilder/ui-ux-pro-max-skill", ref: "9f1824aa7bd87b7a2db8e19afd7fbe40d5f354e5", path: "cli/assets/skills/brand"
+skill "design", from: "nextlevelbuilder/ui-ux-pro-max-skill", ref: "e4f45473691e4b389519ee4bc359a3d6df666c26", path: "cli/assets/skills/design"
+skill "design-system", from: "nextlevelbuilder/ui-ux-pro-max-skill", ref: "bd19ab9070ecfeff9581bf0fbd3049fd542def84", path: "cli/assets/skills/design-system"
+skill "slides", from: "nextlevelbuilder/ui-ux-pro-max-skill", ref: "d9062e3bc26e10e3d4d63b5b23542202e8d9efce", path: "cli/assets/skills/slides"
+skill "ui-styling", from: "nextlevelbuilder/ui-ux-pro-max-skill", ref: "d9062e3bc26e10e3d4d63b5b23542202e8d9efce", path: "cli/assets/skills/ui-styling"
+skill "ui-ux-pro-max", from: "nextlevelbuilder/ui-ux-pro-max-skill", ref: "3321626663a9dd7a61f409de206322bef64f43e9", path: ".claude/skills/ui-ux-pro-max"
+
+# --- railwayapp/railway-skills (MIT)
+skill "use-railway", from: "railwayapp/railway-skills", ref: "ca21b2a1f9237163291a3a936b1cbb86752f4895", path: "plugins/railway/skills/use-railway"
