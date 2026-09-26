@@ -161,7 +161,7 @@ full each time. Pick a working dir outside the export, e.g. `~/wa/<chat-name>/`,
      real safety check: tesseract reads unrecognised input as a list of image paths and OCRs
      *those* files, so a crafted "photo" could otherwise pull text out of images elsewhere on
      this machine. Rejections don't count toward the ten-in-a-row stop, and retrying won't
-     change them. If *every* image is rejected the run says it looks systemic (placeholders
+     change them. If *every* image is rejected (at least ten) the run says it looks systemic (placeholders
      instead of media, or a broken transfer): check a few of the files.
    - `ocr_text` values:
      - `''`: checked, and less than `--min-chars` (12) of text found. Most photos have none.

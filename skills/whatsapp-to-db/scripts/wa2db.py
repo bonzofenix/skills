@@ -427,11 +427,14 @@ def dropped_messages(db, records, prev_order, new_order):
     new = Counter(f"{d}T{t}" for d, t, _, _ in records)
     missing = Counter(stamps) - new
     if prev_order and prev_order != new_order:
-        swapped = Counter(swap_day_month(ts) for ts in stamps if valid_ts(swap_day_month(ts))) - new
+        # A stored date with day > 12 can't be a misread (the other order would have rejected it),
+        # so it stays as it is and counts as missing if this export lacks it.
+        swapped = Counter(swap_day_month(ts) if valid_ts(swap_day_month(ts)) else ts for ts in stamps) - new
         if sum(swapped.values()) < sum(missing.values()):
-            log(f"note: reading dates as {new_order}; the current DB read the same text as {prev_order}, "
-                "so its dates are corrected")
             missing = swapped
+            if not missing:
+                log(f"note: reading dates as {new_order}; the current DB read the same text as {prev_order}, "
+                    "so its dates are corrected")
     if not missing:
         return None
     stamps = sorted(missing)
@@ -632,7 +635,8 @@ def cmd_ingest(a):
             f"(e.g. {orphans[0]}). If that's most of them, the attachment markers weren't recognised.")
     con = connect(db)
     absent = [f for f, in con.execute("select file from media where path is null")]
-    beside = [f for f in absent if txt_source and os.path.isfile(os.path.join(export_dir, f))]
+    beside = [f for f in absent if txt_source and os.path.isfile(os.path.join(export_dir, f))
+              and not os.path.islink(os.path.join(export_dir, f))]  # symlinks are skipped on purpose
     if beside:
         log(f"note: {len(beside)} referenced files beside the chat log weren't linked because their names don't "
             f"follow WhatsApp's media naming (e.g. {beside[0]}). To link them, ingest the export folder instead.")
@@ -1024,10 +1028,10 @@ def status(con):
     log("voice notes {}: transcribed {}, blank {}, pending {}, failed {}, not in export {}".format(
         q("select count(*) from audios"),
         q("select count(*) from audios where transcript != ''"),
-        q("select count(*) from audios where transcript = '' and error is null"),
+        q("select count(*) from audios where transcript = '' and error is null"),  # error covers 'not in export' 
         q(f"select count(*) {on_disk} and a.transcript is null and a.error is null"),
         q(f"select count(*) {on_disk} and a.error is not null"),
-        q("select count(*) from audios where error = 'not in export' and transcript is null")))
+        q("select count(*) from audios where error = 'not in export' and (transcript is null or transcript = '')")))
     if q("select count(*) from audios where translation is not null or translation_error is not null"):
         log("translations: done {}, pending {}, failed {}".format(
             q("select count(*) from audios where translation is not null"),

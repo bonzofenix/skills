@@ -977,6 +977,14 @@ class TestRoundFive:
         assert "corrected" not in r.stdout
         assert rows(db, "select count(*) from messages") == [(3,)]
 
+    def test_a_wrong_date_order_is_refused_not_folded_away(self, tmp_path):
+        lines = [f"[{d:02d}/04/2025, 10:00:00] Ana: day {d}" for d in range(1, 29)]
+        export, db, _ = ingested(tmp_path, lines, [])
+        r = cli("ingest", export, "--db", db, "--date-order", "mdy")
+        assert r.returncode != 0 and "16 of its messages aren't in this export" in r.stderr
+        assert "corrected" not in r.stdout
+        assert rows(db, "select count(*) from messages") == [(28,)]
+
     def test_impossible_timestamps_in_an_older_db_are_ignored(self, tmp_path):
         export, db, _ = ingested(tmp_path)
         con = sqlite3.connect(db)
